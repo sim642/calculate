@@ -356,7 +356,7 @@ int main()
 	})));
 
 	string exp;
-    while (cout << "> ", getline(cin, exp))
+	while (cout << "> ", getline(cin, exp))
 	{
 		try
 		{
@@ -372,5 +372,5 @@ int main()
 		}
 		cout << endl;
 	}
-    return 0;
+	return 0;
 }
