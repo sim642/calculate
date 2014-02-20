@@ -19,7 +19,18 @@ struct Op
 };
 
 multimap<string, Op> ops;
-map<string, function<double(vector<double>)>> funcs;
+multimap<string, function<pair<bool, double>(vector<double>)>> funcs;
+
+function<pair<bool, double>(vector<double>)> args(unsigned int n, function<double(vector<double>)> func)
+{
+	return [func, n](vector<double> v)
+	{
+		if (v.size() == n)
+			return make_pair(true, func(v));
+		else
+			return make_pair(false, 0.0);
+	};
+}
 
 vector<pair<string, int>> infix2postfix(string in)
 {
@@ -224,7 +235,20 @@ double evalpostfix(vector<pair<string, int>> p)
 
 				}
 
-				s.push(funcs[tok.first](v));
+				auto range = funcs.equal_range(tok.first);
+				auto it = range.first;
+				pair<bool, double> ret(false, 0);
+				for (; it != range.second; ++it)
+				{
+					ret = it->second(v);
+					if (ret.first)
+						break;
+				}
+
+				if (ret.first)
+					s.push(ret.second);
+				else
+					cout << "ERRORF" << endl;
 			}
 		}
 	}
@@ -241,40 +265,68 @@ int main()
 	ops.insert(make_pair("-", Op{false, 1, false}));
 	ops.insert(make_pair("*", Op{false, 2, false}));
 	ops.insert(make_pair("/", Op{false, 2, false}));
+	ops.insert(make_pair("%", Op{false, 2, false}));
 	ops.insert(make_pair("^", Op{true, 3, false}));
 	ops.insert(make_pair("+", Op{false, 10, true}));
 	ops.insert(make_pair("-", Op{false, 10, true}));
 
-	funcs["+"] = [](vector<double> v)
+	funcs.insert(make_pair("+", args(1, [](vector<double> v)
 	{
-		if (v.size() == 1)
-			return v[0];
-		else
-			return v[0] + v[1];
-	};
-	funcs["-"] = [](vector<double> v)
+		return v[0];
+	})));
+	funcs.insert(make_pair("+", args(2, [](vector<double> v)
 	{
-		if (v.size() == 1)
-			return -v[0];
-		else
-			return v[0] - v[1];
-	};
-	funcs["*"] = [](vector<double> v)
+		return v[0] + v[1];
+	})));
+	funcs.insert(make_pair("-", args(1, [](vector<double> v)
+	{
+		return -v[0];
+	})));
+	funcs.insert(make_pair("-", args(2, [](vector<double> v)
+	{
+		return v[0] - v[1];
+	})));
+	funcs.insert(make_pair("*", args(2, [](vector<double> v)
 	{
 		return v[0] * v[1];
-	};
-	funcs["/"] = [](vector<double> v)
+	})));
+	funcs.insert(make_pair("/", args(2, [](vector<double> v)
 	{
 		return v[0] / v[1];
-	};
-	funcs["^"] = [](vector<double> v)
+	})));
+	funcs.insert(make_pair("%", args(2, [](vector<double> v)
+	{
+		return fmod(v[0], v[1]);
+	})));
+	funcs.insert(make_pair("^", args(2, [](vector<double> v)
 	{
 		return pow(v[0], v[1]);
-	};
-	funcs["max"] = [](vector<double> v)
+	})));
+	funcs.insert(make_pair("abs", args(1, [](vector<double> v)
 	{
-		return *max_element(v.begin(), v.end());
-	};
+		return abs(v[0]);
+	})));
+	funcs.insert(make_pair("log", [](vector<double> v)
+	{
+		if (v.size() == 1)
+			return make_pair(true, log10(v[0]));
+		else if (v.size() == 2)
+			return make_pair(true, log(v[1]) / log(v[0]));
+		else
+			return make_pair(false, 0.0);
+	}));
+	funcs.insert(make_pair("sqrt", args(1, [](vector<double> v)
+	{
+		return sqrt(v[0]);
+	})));
+	funcs.insert(make_pair("min", [](vector<double> v)
+	{
+		return make_pair(true, *min_element(v.begin(), v.end()));
+	}));
+	funcs.insert(make_pair("max", [](vector<double> v)
+	{
+		return make_pair(true, *max_element(v.begin(), v.end()));
+	}));
 
 	string exp;
     while (cout << "> ", getline(cin, exp))
