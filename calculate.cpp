@@ -58,6 +58,9 @@ vector<pair<string, int>> infix2postfix(string in)
 		for (it2 = it; it2 != in.cend() && numbers.find(*it2) != string::npos; ++it2);
 		if (it2 != it)
 		{
+			if (lasttok.first == ")")
+				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
+
 			out.push_back(lasttok = make_pair(string(it, it2), -1));
 			it = it2;
 			continue;
@@ -98,7 +101,7 @@ vector<pair<string, int>> infix2postfix(string in)
 						}
 					}
 
-					if (found && ((!oit->second.right && oit->second.prec == tprec) || (oit->second.prec < tprec)))
+					if ((found && ((!oit->second.right && oit->second.prec == tprec) || (oit->second.prec < tprec))) || (range.first == range.second && funcs.find(s.top().first) != funcs.end()))
 					{
 						out.push_back(s.top());
 						s.pop();
@@ -122,6 +125,9 @@ vector<pair<string, int>> infix2postfix(string in)
 		}
 		if (fit != funcs.end())
 		{
+			if (lasttok.second == -1)
+				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
+
 			s.push(lasttok = make_pair(fit->first, 0));
 			it += fit->first.size();
 			continue;
@@ -129,6 +135,9 @@ vector<pair<string, int>> infix2postfix(string in)
 
 		if (*it == ',')
 		{
+			if (lasttok.first == "(" || lasttok.first == ",")
+				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing argument at " + to_string(it - in.cbegin()));
+
 			bool found = false;
 			while (!s.empty())
 			{
@@ -157,6 +166,9 @@ vector<pair<string, int>> infix2postfix(string in)
 
 		if (*it == '(')
 		{
+			if (lasttok.second == -1)
+				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
+
 			s.push(lasttok = make_pair("(", 1));
 			++it;
 			continue;
@@ -164,6 +176,9 @@ vector<pair<string, int>> infix2postfix(string in)
 
 		if (*it == ')')
 		{
+			if (lasttok.first == "(" || lasttok.first == ",")
+				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing argument at " + to_string(it - in.cbegin()));
+
 			bool found = false;
 			while (!s.empty())
 			{
@@ -323,8 +338,19 @@ int main()
 	}));
 	funcs.insert(make_pair("max", [](vector<double> v)
 	{
-		return make_pair(true, *max_element(v.begin(), v.end()));
+		if (v.size() > 0)
+			return make_pair(true, *max_element(v.begin(), v.end()));
+		else
+			return make_pair(false, 0.0);
 	}));
+	funcs.insert(make_pair("pi", args(0, [](vector<double> v)
+	{
+		return M_PI;
+	})));
+	funcs.insert(make_pair("e", args(0, [](vector<double> v)
+	{
+		return M_E;
+	})));
 
 	string exp;
     while (cout << "> ", getline(cin, exp))
