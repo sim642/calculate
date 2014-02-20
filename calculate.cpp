@@ -334,7 +334,10 @@ int main()
 	})));
 	funcs.insert(make_pair("min", [](vector<double> v)
 	{
-		return make_pair(true, *min_element(v.begin(), v.end()));
+		if (v.size() > 0)
+			return make_pair(true, *min_element(v.begin(), v.end()));
+		else
+			return make_pair(false, 0.0);
 	}));
 	funcs.insert(make_pair("max", [](vector<double> v)
 	{
