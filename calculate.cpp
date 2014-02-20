@@ -8,6 +8,7 @@
 #include <numeric>
 #include <cmath>
 #include <functional>
+#include <stdexcept>
 
 using namespace std;
 
@@ -128,8 +129,6 @@ vector<pair<string, int>> infix2postfix(string in)
 
 		if (*it == ',')
 		{
-			s.top().second++;
-
 			bool found = false;
 			while (!s.empty())
 			{
@@ -148,8 +147,9 @@ vector<pair<string, int>> infix2postfix(string in)
 			}
 
 			if (!found)
-				cout << "ERROR," << endl;
+				throw invalid_argument(string(it - in.cbegin() + 2, ' ') + "^\nFound ',' not inside function arguments at " + to_string(it - in.cbegin()));
 
+			s.top().second++;
 			lasttok = make_pair(",", 0);
 			++it;
 			continue;
@@ -181,7 +181,7 @@ vector<pair<string, int>> infix2postfix(string in)
 			}
 
 			if (!found)
-				cout << "ERROR)" << endl;
+				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nFound excess '(' at " + to_string(it - in.cbegin()));
 
 			auto tok = s.top();
 			s.pop();
@@ -197,9 +197,7 @@ vector<pair<string, int>> infix2postfix(string in)
 			continue;
 		}
 
-		lasttok = make_pair("", 0);
-		cout << "ERROR" << endl;
-		return vector<pair<string, int>>();
+		throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nUnknown token found at " + to_string(it - in.cbegin()));
 	}
 
 	while (!s.empty())
@@ -207,7 +205,7 @@ vector<pair<string, int>> infix2postfix(string in)
 		auto tok = s.top();
 		s.pop();
 		if (tok.first == "(")
-			cout << "ERROR" << endl;
+			throw logic_error(string(in.size() + 2, ' ') + "^\nFound unclosed '(' at " + to_string(in.size()));
 		out.push_back(tok);
 	}
 
@@ -224,7 +222,7 @@ double evalpostfix(vector<pair<string, int>> p)
 		else
 		{
 			if (s.size() < tok.second)
-				cout << "ERRORN" << endl;
+				throw invalid_argument("Not enough arguments (have " + to_string(s.size()) + ") for function '" + tok.first + "' (want " + to_string(tok.second) + ")");
 			else
 			{
 				vector<double> v;
@@ -248,7 +246,7 @@ double evalpostfix(vector<pair<string, int>> p)
 				if (ret.first)
 					s.push(ret.second);
 				else
-					cout << "ERRORF" << endl;
+					throw domain_error("Unacceptable arguments for function '" + tok.first + "'");
 			}
 		}
 	}
@@ -256,7 +254,7 @@ double evalpostfix(vector<pair<string, int>> p)
 	if (s.size() == 1)
 		return s.top();
 	else
-		cout << "ERRORM" << endl;
+		throw logic_error("No single result found");
 }
 
 int main()
@@ -331,11 +329,18 @@ int main()
 	string exp;
     while (cout << "> ", getline(cin, exp))
 	{
-		auto postfix = infix2postfix(exp);
-		for (auto &tok : postfix)
-			cout << tok.first << "/" << tok.second << " ";
-		cout << endl;
-		cout << evalpostfix(postfix) << endl;
+		try
+		{
+			auto postfix = infix2postfix(exp);
+			for (auto &tok : postfix)
+				cout << tok.first << "/" << tok.second << " ";
+			cout << endl;
+			cout << evalpostfix(postfix) << endl;
+		}
+		catch (exception &e)
+		{
+			cout << e.what() << endl;
+		}
 		cout << endl;
 	}
     return 0;
