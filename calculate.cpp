@@ -58,7 +58,7 @@ vector<pair<string, int>> infix2postfix(string in)
 		for (it2 = it; it2 != in.cend() && numbers.find(*it2) != string::npos; ++it2);
 		if (it2 != it)
 		{
-			if (lasttok.first == ")")
+			if (lasttok.first == ")" || (ops.find(lasttok.first) == ops.end() && funcs.find(lasttok.first) != funcs.end()) || lasttok.second == -1)
 				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
 
 			out.push_back(lasttok = make_pair(string(it, it2), -1));
@@ -118,14 +118,14 @@ vector<pair<string, int>> infix2postfix(string in)
 		decltype(funcs)::iterator fit;
 		for (fit = funcs.begin(); fit != funcs.end(); ++fit)
 		{
-			if (equal(fit->first.begin(), fit->first.end(), it))
+			if (ops.find(fit->first) == ops.end() && equal(fit->first.begin(), fit->first.end(), it))
 			{
 				break;
 			}
 		}
 		if (fit != funcs.end())
 		{
-			if (lasttok.second == -1)
+			if (lasttok.second == -1 || lasttok.first == ")")
 				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
 
 			s.push(lasttok = make_pair(fit->first, 0));
