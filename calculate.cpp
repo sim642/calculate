@@ -12,7 +12,7 @@
 
 using namespace std;
 
-struct op_t
+struct oper_t
 {
 	bool right;
 	int prec;
@@ -25,7 +25,7 @@ typedef function<return_t(args_t)> func_t;
 typedef pair<string, int> token_t;
 typedef vector<token_t> postfix_t;
 
-multimap<string, op_t> ops;
+multimap<string, oper_t> opers;
 multimap<string, func_t> funcs;
 
 func_t args(unsigned int n, function<double(args_t)> func)
@@ -64,7 +64,7 @@ postfix_t infix2postfix(string in)
 		for (; it2 != in.cend() && numbers.find(*it2) != string::npos; ++it2);
 		if (it2 != it)
 		{
-			if (lasttok.first == ")" || (ops.find(lasttok.first) == ops.end() && funcs.find(lasttok.first) != funcs.end()) || lasttok.second == -1)
+			if (lasttok.first == ")" || (opers.find(lasttok.first) == opers.end() && funcs.find(lasttok.first) != funcs.end()) || lasttok.second == -1)
 				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
 
 			out.push_back(lasttok = token_t(string(it, it2), -1));
@@ -72,19 +72,19 @@ postfix_t infix2postfix(string in)
 			continue;
 		}
 
-		bool unary = lasttok.first == "" || lasttok.first == "(" || lasttok.first == "," || ops.find(lasttok.first) != ops.end();
+		bool unary = lasttok.first == "" || lasttok.first == "(" || lasttok.first == "," || opers.find(lasttok.first) != opers.end();
 		/*cout << unary << endl;
 		cout << endl;*/
 
-		auto oit = ops.begin();
-		for (; oit != ops.end(); ++oit)
+		auto oit = opers.begin();
+		for (; oit != opers.end(); ++oit)
 		{
 			if (equal(oit->first.begin(), oit->first.end(), it) && oit->second.unary == unary)
 			{
 				break;
 			}
 		}
-		if (oit != ops.end())
+		if (oit != opers.end())
 		{
 			if (unary)
 			{
@@ -96,7 +96,7 @@ postfix_t infix2postfix(string in)
 				{
 					bool found = false;
 					int tprec;
-					auto range = ops.equal_range(s.top().first);
+					auto range = opers.equal_range(s.top().first);
 					for (auto oit2 = range.first; oit2 != range.second; ++oit2)
 					{
 						if (s.top().second == (oit2->second.unary ? 1 : 2))
@@ -124,7 +124,7 @@ postfix_t infix2postfix(string in)
 		auto fit = funcs.begin();
 		for (; fit != funcs.end(); ++fit)
 		{
-			if (ops.find(fit->first) == ops.end() && equal(fit->first.begin(), fit->first.end(), it))
+			if (opers.find(fit->first) == opers.end() && equal(fit->first.begin(), fit->first.end(), it))
 			{
 				break;
 			}
@@ -207,7 +207,7 @@ postfix_t infix2postfix(string in)
 			token_t tok = s.top();
 			s.pop();
 
-			if (!s.empty() && ops.find(s.top().first) == ops.end() && funcs.find(s.top().first) != funcs.end())
+			if (!s.empty() && opers.find(s.top().first) == opers.end() && funcs.find(s.top().first) != funcs.end())
 			{
 				out.push_back(token_t(s.top().first, tok.second));
 				s.pop();
@@ -279,14 +279,14 @@ double evalpostfix(postfix_t in)
 
 int main()
 {
-	ops.insert(make_pair("+", op_t{false, 1, false}));
-	ops.insert(make_pair("-", op_t{false, 1, false}));
-	ops.insert(make_pair("*", op_t{false, 2, false}));
-	ops.insert(make_pair("/", op_t{false, 2, false}));
-	ops.insert(make_pair("%", op_t{false, 2, false}));
-	ops.insert(make_pair("^", op_t{true, 3, false}));
-	ops.insert(make_pair("+", op_t{false, 10, true}));
-	ops.insert(make_pair("-", op_t{false, 10, true}));
+	opers.insert(make_pair("+", oper_t{false, 1, false}));
+	opers.insert(make_pair("-", oper_t{false, 1, false}));
+	opers.insert(make_pair("*", oper_t{false, 2, false}));
+	opers.insert(make_pair("/", oper_t{false, 2, false}));
+	opers.insert(make_pair("%", oper_t{false, 2, false}));
+	opers.insert(make_pair("^", oper_t{true, 3, false}));
+	opers.insert(make_pair("+", oper_t{false, 10, true}));
+	opers.insert(make_pair("-", oper_t{false, 10, true}));
 
 	funcs.insert(make_pair("+", args(1, [](vector<double> v)
 	{
