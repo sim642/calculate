@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <stack>
 #include <map>
@@ -25,10 +26,25 @@ typedef function<return_t(args_t)> func_t;
 typedef pair<string, int> token_t;
 typedef vector<token_t> postfix_t;
 
+class parse_error : public runtime_error
+{
+public:
+	parse_error(const string &what_arg, unsigned int i_arg) : runtime_error(what_arg), i(i_arg)
+	{
+	}
+
+	unsigned int index() const
+	{
+		return i;
+	}
+protected:
+	unsigned int i;
+};
+
 multimap<string, oper_t> opers;
 multimap<string, func_t> funcs;
 
-func_t args(unsigned int n, function<double(args_t)> func)
+func_t func_args(unsigned int n, function<double(args_t)> func)
 {
 	return [func, n](args_t v)
 	{
@@ -39,6 +55,14 @@ func_t args(unsigned int n, function<double(args_t)> func)
 	};
 }
 
+func_t func_constant(double c)
+{
+	return func_args(0, [c](args_t v)
+	{
+		return c;
+	});
+}
+
 postfix_t infix2postfix(string in)
 {
 	postfix_t out;
@@ -47,6 +71,8 @@ postfix_t infix2postfix(string in)
 	token_t lasttok;
 	for (auto it = in.cbegin(); it != in.cend();)
 	{
+		const unsigned int i = it - in.cbegin();
+
 		static const string spaces = " \t\r\n";
 		if (spaces.find(*it) != string::npos)
 		{
@@ -65,7 +91,7 @@ postfix_t infix2postfix(string in)
 		if (it2 != it)
 		{
 			if (lasttok.first == ")" || (opers.find(lasttok.first) == opers.end() && funcs.find(lasttok.first) != funcs.end()) || lasttok.second == -1)
-				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
+				throw parse_error("Missing operator", i);
 
 			out.push_back(lasttok = token_t(string(it, it2), -1));
 			it = it2;
@@ -132,7 +158,7 @@ postfix_t infix2postfix(string in)
 		if (fit != funcs.end())
 		{
 			if (lasttok.second == -1 || lasttok.first == ")")
-				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
+				throw parse_error("Missing operator", i);
 
 			s.push(lasttok = token_t(fit->first, 0));
 			it += fit->first.size();
@@ -142,7 +168,7 @@ postfix_t infix2postfix(string in)
 		if (*it == ',')
 		{
 			if (lasttok.first == "(" || lasttok.first == ",")
-				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing argument at " + to_string(it - in.cbegin()));
+				throw parse_error("Missing argument", i);
 
 			bool found = false;
 			while (!s.empty())
@@ -162,7 +188,7 @@ postfix_t infix2postfix(string in)
 			}
 
 			if (!found)
-				throw invalid_argument(string(it - in.cbegin() + 2, ' ') + "^\nFound ',' not inside function arguments at " + to_string(it - in.cbegin()));
+				throw parse_error("Found ',' not inside function arguments", i);
 
 			s.top().second++;
 			lasttok = token_t(",", 0);
@@ -173,7 +199,7 @@ postfix_t infix2postfix(string in)
 		if (*it == '(')
 		{
 			if (lasttok.second == -1)
-				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
+				throw parse_error("Missing operator", i);
 
 			s.push(lasttok = token_t("(", 1));
 			++it;
@@ -183,7 +209,7 @@ postfix_t infix2postfix(string in)
 		if (*it == ')')
 		{
 			if (lasttok.first == "(" || lasttok.first == ",")
-				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing argument at " + to_string(it - in.cbegin()));
+				throw parse_error("Missing argument", i);
 
 			bool found = false;
 			while (!s.empty())
@@ -202,7 +228,7 @@ postfix_t infix2postfix(string in)
 			}
 
 			if (!found)
-				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nFound excess '(' at " + to_string(it - in.cbegin()));
+				throw parse_error("Found excess '('", i);
 
 			token_t tok = s.top();
 			s.pop();
@@ -218,7 +244,7 @@ postfix_t infix2postfix(string in)
 			continue;
 		}
 
-		throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nUnknown token found at " + to_string(it - in.cbegin()));
+		throw parse_error("Unknown token found", i);
 	}
 
 	while (!s.empty())
@@ -226,7 +252,7 @@ postfix_t infix2postfix(string in)
 		token_t tok = s.top();
 		s.pop();
 		if (tok.first == "(")
-			throw logic_error(string(in.size() + 2, ' ') + "^\nFound unclosed '(' at " + to_string(in.size()));
+			throw parse_error("Found unclosed '('", in.size());
 		out.push_back(tok);
 	}
 
@@ -243,7 +269,7 @@ double evalpostfix(postfix_t in)
 		else
 		{
 			if (s.size() < tok.second)
-				throw invalid_argument("Not enough arguments (have " + to_string(s.size()) + ") for function '" + tok.first + "' (want " + to_string(tok.second) + ")");
+				throw runtime_error("Not enough arguments (have " + to_string(s.size()) + ") for function '" + tok.first + "' (want " + to_string(tok.second) + ")");
 			else
 			{
 				args_t v;
@@ -266,7 +292,16 @@ double evalpostfix(postfix_t in)
 				if (ret.first)
 					s.push(ret.second);
 				else
-					throw domain_error("Unacceptable arguments for function '" + tok.first + "'");
+				{
+					ostringstream args; // stringstream because to_string adds trailing zeroes
+					for (auto vit = v.begin(); vit != v.end(); ++vit)
+					{
+						args << *vit;
+						if ((vit + 1) != v.end())
+							args << ", ";
+					}
+					throw runtime_error("Unacceptable arguments (" + args.str() + ") for function '" + tok.first + "'");
+				}
 			}
 		}
 	}
@@ -274,7 +309,7 @@ double evalpostfix(postfix_t in)
 	if (s.size() == 1)
 		return s.top();
 	else
-		throw logic_error("No single result found");
+		throw runtime_error("No single result found");
 }
 
 int main()
@@ -288,39 +323,39 @@ int main()
 	opers.insert(make_pair("+", oper_t{false, 10, true}));
 	opers.insert(make_pair("-", oper_t{false, 10, true}));
 
-	funcs.insert(make_pair("+", args(1, [](vector<double> v)
+	funcs.insert(make_pair("+", func_args(1, [](vector<double> v)
 	{
 		return v[0];
 	})));
-	funcs.insert(make_pair("+", args(2, [](vector<double> v)
+	funcs.insert(make_pair("+", func_args(2, [](vector<double> v)
 	{
 		return v[0] + v[1];
 	})));
-	funcs.insert(make_pair("-", args(1, [](vector<double> v)
+	funcs.insert(make_pair("-", func_args(1, [](vector<double> v)
 	{
 		return -v[0];
 	})));
-	funcs.insert(make_pair("-", args(2, [](vector<double> v)
+	funcs.insert(make_pair("-", func_args(2, [](vector<double> v)
 	{
 		return v[0] - v[1];
 	})));
-	funcs.insert(make_pair("*", args(2, [](vector<double> v)
+	funcs.insert(make_pair("*", func_args(2, [](vector<double> v)
 	{
 		return v[0] * v[1];
 	})));
-	funcs.insert(make_pair("/", args(2, [](vector<double> v)
+	funcs.insert(make_pair("/", func_args(2, [](vector<double> v)
 	{
 		return v[0] / v[1];
 	})));
-	funcs.insert(make_pair("%", args(2, [](vector<double> v)
+	funcs.insert(make_pair("%", func_args(2, [](vector<double> v)
 	{
 		return fmod(v[0], v[1]);
 	})));
-	funcs.insert(make_pair("^", args(2, [](vector<double> v)
+	funcs.insert(make_pair("^", func_args(2, [](vector<double> v)
 	{
 		return pow(v[0], v[1]);
 	})));
-	funcs.insert(make_pair("abs", args(1, [](vector<double> v)
+	funcs.insert(make_pair("abs", func_args(1, [](vector<double> v)
 	{
 		return abs(v[0]);
 	})));
@@ -333,7 +368,7 @@ int main()
 		else
 			return make_pair(false, 0.0);
 	}));
-	funcs.insert(make_pair("sqrt", args(1, [](vector<double> v)
+	funcs.insert(make_pair("sqrt", func_args(1, [](vector<double> v)
 	{
 		return sqrt(v[0]);
 	})));
@@ -351,14 +386,9 @@ int main()
 		else
 			return make_pair(false, 0.0);
 	}));
-	funcs.insert(make_pair("pi", args(0, [](vector<double> v)
-	{
-		return M_PI;
-	})));
-	funcs.insert(make_pair("e", args(0, [](vector<double> v)
-	{
-		return M_E;
-	})));
+	funcs.insert(make_pair("pi", func_constant(M_PI)));
+	funcs.insert(make_pair("e", func_constant(M_E)));
+	funcs.insert(make_pair("_", func_constant(NAN)));
 
 	string exp;
 	while (cout << "> ", getline(cin, exp))
@@ -369,7 +399,14 @@ int main()
 			for (auto &tok : postfix)
 				cout << tok.first << "/" << tok.second << " ";
 			cout << endl;
-			cout << evalpostfix(postfix) << endl;
+			double value = evalpostfix(postfix);
+			cout << value << endl;
+			funcs.find("_")->second = func_constant(value);
+		}
+		catch (parse_error &e)
+		{
+			cout << string(e.index() + 2, ' ') << "^" << endl;
+			cout << e.what() << " at " << e.index() << endl;
 		}
 		catch (exception &e)
 		{
