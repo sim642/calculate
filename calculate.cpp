@@ -12,34 +12,40 @@
 
 using namespace std;
 
-struct Op
+struct op_t
 {
 	bool right;
 	int prec;
 	bool unary;
 };
 
-multimap<string, Op> ops;
-multimap<string, function<pair<bool, double>(vector<double>)>> funcs;
+typedef pair<bool, double> return_t;
+typedef vector<double> args_t;
+typedef function<return_t(args_t)> func_t;
+typedef pair<string, int> token_t;
+typedef vector<token_t> postfix_t;
 
-function<pair<bool, double>(vector<double>)> args(unsigned int n, function<double(vector<double>)> func)
+multimap<string, op_t> ops;
+multimap<string, func_t> funcs;
+
+func_t args(unsigned int n, function<double(args_t)> func)
 {
-	return [func, n](vector<double> v)
+	return [func, n](args_t v)
 	{
 		if (v.size() == n)
-			return make_pair(true, func(v));
+			return return_t(true, func(v));
 		else
-			return make_pair(false, 0.0);
+			return return_t(false, 0.0);
 	};
 }
 
-vector<pair<string, int>> infix2postfix(string in)
+postfix_t infix2postfix(string in)
 {
-	vector<pair<string, int>> out;
-	stack<pair<string, int>> s;
+	postfix_t out;
+	stack<token_t> s;
 
-	pair<string, int> lasttok;
-	for (string::const_iterator it = in.cbegin(); it != in.cend();)
+	token_t lasttok;
+	for (auto it = in.cbegin(); it != in.cend();)
 	{
 		static const string spaces = " \t\r\n";
 		if (spaces.find(*it) != string::npos)
@@ -54,14 +60,14 @@ vector<pair<string, int>> infix2postfix(string in)
 			cout << s.top().first << "/" << s.top().second << endl;*/
 
 		static const string numbers = "0123456789.";
-		string::const_iterator it2;
-		for (it2 = it; it2 != in.cend() && numbers.find(*it2) != string::npos; ++it2);
+		auto it2 = it;
+		for (; it2 != in.cend() && numbers.find(*it2) != string::npos; ++it2);
 		if (it2 != it)
 		{
 			if (lasttok.first == ")" || (ops.find(lasttok.first) == ops.end() && funcs.find(lasttok.first) != funcs.end()) || lasttok.second == -1)
 				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
 
-			out.push_back(lasttok = make_pair(string(it, it2), -1));
+			out.push_back(lasttok = token_t(string(it, it2), -1));
 			it = it2;
 			continue;
 		}
@@ -70,8 +76,8 @@ vector<pair<string, int>> infix2postfix(string in)
 		/*cout << unary << endl;
 		cout << endl;*/
 
-		decltype(ops)::iterator oit;
-		for (oit = ops.begin(); oit != ops.end(); ++oit)
+		auto oit = ops.begin();
+		for (; oit != ops.end(); ++oit)
 		{
 			if (equal(oit->first.begin(), oit->first.end(), it) && oit->second.unary == unary)
 			{
@@ -82,7 +88,7 @@ vector<pair<string, int>> infix2postfix(string in)
 		{
 			if (unary)
 			{
-				s.push(lasttok = make_pair(oit->first, 1));
+				s.push(lasttok = token_t(oit->first, 1));
 			}
 			else
 			{
@@ -109,14 +115,14 @@ vector<pair<string, int>> infix2postfix(string in)
 					else
 						break;
 				}
-				s.push(lasttok = make_pair(oit->first, 2));
+				s.push(lasttok = token_t(oit->first, 2));
 			}
 			it += oit->first.size();
 			continue;
 		}
 
-		decltype(funcs)::iterator fit;
-		for (fit = funcs.begin(); fit != funcs.end(); ++fit)
+		auto fit = funcs.begin();
+		for (; fit != funcs.end(); ++fit)
 		{
 			if (ops.find(fit->first) == ops.end() && equal(fit->first.begin(), fit->first.end(), it))
 			{
@@ -128,7 +134,7 @@ vector<pair<string, int>> infix2postfix(string in)
 			if (lasttok.second == -1 || lasttok.first == ")")
 				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
 
-			s.push(lasttok = make_pair(fit->first, 0));
+			s.push(lasttok = token_t(fit->first, 0));
 			it += fit->first.size();
 			continue;
 		}
@@ -141,7 +147,7 @@ vector<pair<string, int>> infix2postfix(string in)
 			bool found = false;
 			while (!s.empty())
 			{
-				auto tok = s.top();
+				token_t tok = s.top();
 
 				if (tok.first == "(")
 				{
@@ -159,7 +165,7 @@ vector<pair<string, int>> infix2postfix(string in)
 				throw invalid_argument(string(it - in.cbegin() + 2, ' ') + "^\nFound ',' not inside function arguments at " + to_string(it - in.cbegin()));
 
 			s.top().second++;
-			lasttok = make_pair(",", 0);
+			lasttok = token_t(",", 0);
 			++it;
 			continue;
 		}
@@ -169,7 +175,7 @@ vector<pair<string, int>> infix2postfix(string in)
 			if (lasttok.second == -1)
 				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nMissing operator at " + to_string(it - in.cbegin()));
 
-			s.push(lasttok = make_pair("(", 1));
+			s.push(lasttok = token_t("(", 1));
 			++it;
 			continue;
 		}
@@ -182,7 +188,7 @@ vector<pair<string, int>> infix2postfix(string in)
 			bool found = false;
 			while (!s.empty())
 			{
-				auto tok = s.top();
+				token_t tok = s.top();
 				if (tok.first == "(")
 				{
 					found = true;
@@ -198,16 +204,16 @@ vector<pair<string, int>> infix2postfix(string in)
 			if (!found)
 				throw logic_error(string(it - in.cbegin() + 2, ' ') + "^\nFound excess '(' at " + to_string(it - in.cbegin()));
 
-			auto tok = s.top();
+			token_t tok = s.top();
 			s.pop();
 
 			if (!s.empty() && ops.find(s.top().first) == ops.end() && funcs.find(s.top().first) != funcs.end())
 			{
-				out.push_back(make_pair(s.top().first, tok.second));
+				out.push_back(token_t(s.top().first, tok.second));
 				s.pop();
 			}
 
-			lasttok = make_pair(")", 0);
+			lasttok = token_t(")", 0);
 			++it;
 			continue;
 		}
@@ -217,7 +223,7 @@ vector<pair<string, int>> infix2postfix(string in)
 
 	while (!s.empty())
 	{
-		auto tok = s.top();
+		token_t tok = s.top();
 		s.pop();
 		if (tok.first == "(")
 			throw logic_error(string(in.size() + 2, ' ') + "^\nFound unclosed '(' at " + to_string(in.size()));
@@ -227,10 +233,10 @@ vector<pair<string, int>> infix2postfix(string in)
 	return out;
 }
 
-double evalpostfix(vector<pair<string, int>> p)
+double evalpostfix(postfix_t in)
 {
 	stack<double> s;
-	for (auto &tok : p)
+	for (token_t &tok : in)
 	{
 		if (tok.second == -1)
 			s.push(stod(tok.first));
@@ -240,17 +246,16 @@ double evalpostfix(vector<pair<string, int>> p)
 				throw invalid_argument("Not enough arguments (have " + to_string(s.size()) + ") for function '" + tok.first + "' (want " + to_string(tok.second) + ")");
 			else
 			{
-				vector<double> v;
+				args_t v;
 				for (int i = 0; i < tok.second; i++)
 				{
 					v.insert(v.begin(), s.top());
 					s.pop();
-
 				}
 
 				auto range = funcs.equal_range(tok.first);
 				auto it = range.first;
-				pair<bool, double> ret(false, 0);
+				return_t ret(false, 0);
 				for (; it != range.second; ++it)
 				{
 					ret = it->second(v);
@@ -274,14 +279,14 @@ double evalpostfix(vector<pair<string, int>> p)
 
 int main()
 {
-	ops.insert(make_pair("+", Op{false, 1, false}));
-	ops.insert(make_pair("-", Op{false, 1, false}));
-	ops.insert(make_pair("*", Op{false, 2, false}));
-	ops.insert(make_pair("/", Op{false, 2, false}));
-	ops.insert(make_pair("%", Op{false, 2, false}));
-	ops.insert(make_pair("^", Op{true, 3, false}));
-	ops.insert(make_pair("+", Op{false, 10, true}));
-	ops.insert(make_pair("-", Op{false, 10, true}));
+	ops.insert(make_pair("+", op_t{false, 1, false}));
+	ops.insert(make_pair("-", op_t{false, 1, false}));
+	ops.insert(make_pair("*", op_t{false, 2, false}));
+	ops.insert(make_pair("/", op_t{false, 2, false}));
+	ops.insert(make_pair("%", op_t{false, 2, false}));
+	ops.insert(make_pair("^", op_t{true, 3, false}));
+	ops.insert(make_pair("+", op_t{false, 10, true}));
+	ops.insert(make_pair("-", op_t{false, 10, true}));
 
 	funcs.insert(make_pair("+", args(1, [](vector<double> v)
 	{
