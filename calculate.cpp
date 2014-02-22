@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -8,6 +9,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cmath>
+#include <limits>
 #include <functional>
 #include <stdexcept>
 
@@ -323,43 +325,43 @@ int main()
 	opers.insert(make_pair("+", oper_t{false, 10, true}));
 	opers.insert(make_pair("-", oper_t{false, 10, true}));
 
-	funcs.insert(make_pair("+", func_args(1, [](vector<double> v)
+	funcs.insert(make_pair("+", func_args(1, [](args_t v)
 	{
 		return v[0];
 	})));
-	funcs.insert(make_pair("+", func_args(2, [](vector<double> v)
+	funcs.insert(make_pair("+", func_args(2, [](args_t v)
 	{
 		return v[0] + v[1];
 	})));
-	funcs.insert(make_pair("-", func_args(1, [](vector<double> v)
+	funcs.insert(make_pair("-", func_args(1, [](args_t v)
 	{
 		return -v[0];
 	})));
-	funcs.insert(make_pair("-", func_args(2, [](vector<double> v)
+	funcs.insert(make_pair("-", func_args(2, [](args_t v)
 	{
 		return v[0] - v[1];
 	})));
-	funcs.insert(make_pair("*", func_args(2, [](vector<double> v)
+	funcs.insert(make_pair("*", func_args(2, [](args_t v)
 	{
 		return v[0] * v[1];
 	})));
-	funcs.insert(make_pair("/", func_args(2, [](vector<double> v)
+	funcs.insert(make_pair("/", func_args(2, [](args_t v)
 	{
 		return v[0] / v[1];
 	})));
-	funcs.insert(make_pair("%", func_args(2, [](vector<double> v)
+	funcs.insert(make_pair("%", func_args(2, [](args_t v)
 	{
 		return fmod(v[0], v[1]);
 	})));
-	funcs.insert(make_pair("^", func_args(2, [](vector<double> v)
+	funcs.insert(make_pair("^", func_args(2, [](args_t v)
 	{
 		return pow(v[0], v[1]);
 	})));
-	funcs.insert(make_pair("abs", func_args(1, [](vector<double> v)
+	funcs.insert(make_pair("abs", func_args(1, [](args_t v)
 	{
 		return abs(v[0]);
 	})));
-	funcs.insert(make_pair("log", [](vector<double> v)
+	funcs.insert(make_pair("log", [](args_t v)
 	{
 		if (v.size() == 1)
 			return make_pair(true, log10(v[0]));
@@ -368,18 +370,18 @@ int main()
 		else
 			return make_pair(false, 0.0);
 	}));
-	funcs.insert(make_pair("sqrt", func_args(1, [](vector<double> v)
+	funcs.insert(make_pair("sqrt", func_args(1, [](args_t v)
 	{
 		return sqrt(v[0]);
 	})));
-	funcs.insert(make_pair("min", [](vector<double> v)
+	funcs.insert(make_pair("min", [](args_t v)
 	{
 		if (v.size() > 0)
 			return make_pair(true, *min_element(v.begin(), v.end()));
 		else
 			return make_pair(false, 0.0);
 	}));
-	funcs.insert(make_pair("max", [](vector<double> v)
+	funcs.insert(make_pair("max", [](args_t v)
 	{
 		if (v.size() > 0)
 			return make_pair(true, *max_element(v.begin(), v.end()));
@@ -400,7 +402,7 @@ int main()
 				cout << tok.first << "/" << tok.second << " ";
 			cout << endl;
 			double value = evalpostfix(postfix);
-			cout << value << endl;
+			cout << setprecision(numeric_limits<decltype(value)>::digits10) << value << endl;
 			funcs.find("_")->second = func_constant(value);
 		}
 		catch (parse_error &e)
