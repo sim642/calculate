@@ -22,8 +22,9 @@ struct oper_t
 	bool unary;
 };
 
-typedef pair<bool, double> return_t;
-typedef vector<double> args_t;
+typedef long double num_t;
+typedef pair<bool, num_t> return_t;
+typedef vector<num_t> args_t;
 typedef function<return_t(args_t)> func_t;
 typedef pair<string, int> token_t;
 typedef vector<token_t> postfix_t;
@@ -46,7 +47,7 @@ protected:
 multimap<string, oper_t> opers;
 multimap<string, func_t> funcs;
 
-func_t func_args(unsigned int n, function<double(args_t)> func)
+func_t func_args(unsigned int n, function<num_t(args_t)> func)
 {
 	return [func, n](args_t v)
 	{
@@ -57,7 +58,7 @@ func_t func_args(unsigned int n, function<double(args_t)> func)
 	};
 }
 
-func_t func_constant(double c)
+func_t func_constant(num_t c)
 {
 	return func_args(0, [c](args_t v)
 	{
@@ -261,9 +262,9 @@ postfix_t infix2postfix(string in)
 	return out;
 }
 
-double evalpostfix(postfix_t in)
+num_t evalpostfix(postfix_t in)
 {
-	stack<double> s;
+	stack<num_t> s;
 	for (token_t &tok : in)
 	{
 		if (tok.second == -1)
@@ -364,11 +365,11 @@ int main()
 	funcs.insert(make_pair("log", [](args_t v)
 	{
 		if (v.size() == 1)
-			return make_pair(true, log10(v[0]));
+			return return_t(true, log10(v[0]));
 		else if (v.size() == 2)
-			return make_pair(true, log(v[1]) / log(v[0]));
+			return return_t(true, log(v[1]) / log(v[0]));
 		else
-			return make_pair(false, 0.0);
+			return return_t(false, 0.0);
 	}));
 	funcs.insert(make_pair("sqrt", func_args(1, [](args_t v)
 	{
@@ -377,19 +378,19 @@ int main()
 	funcs.insert(make_pair("min", [](args_t v)
 	{
 		if (v.size() > 0)
-			return make_pair(true, *min_element(v.begin(), v.end()));
+			return return_t(true, *min_element(v.begin(), v.end()));
 		else
-			return make_pair(false, 0.0);
+			return return_t(false, 0.0);
 	}));
 	funcs.insert(make_pair("max", [](args_t v)
 	{
 		if (v.size() > 0)
-			return make_pair(true, *max_element(v.begin(), v.end()));
+			return return_t(true, *max_element(v.begin(), v.end()));
 		else
-			return make_pair(false, 0.0);
+			return return_t(false, 0.0);
 	}));
-	funcs.insert(make_pair("pi", func_constant(M_PI)));
-	funcs.insert(make_pair("e", func_constant(M_E)));
+	funcs.insert(make_pair("pi", func_constant(acos(-1.L))));
+	funcs.insert(make_pair("e", func_constant(exp(1.L))));
 	funcs.insert(make_pair("_", func_constant(NAN)));
 
 	string exp;
@@ -401,7 +402,7 @@ int main()
 			for (auto &tok : postfix)
 				cout << tok.first << "/" << tok.second << " ";
 			cout << endl;
-			double value = evalpostfix(postfix);
+			auto value = evalpostfix(postfix);
 			cout << setprecision(numeric_limits<decltype(value)>::digits10) << value << endl;
 			funcs.find("_")->second = func_constant(value);
 		}
