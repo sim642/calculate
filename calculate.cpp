@@ -94,6 +94,23 @@ void insert_binaryoper(postfix_t &out, stack<token_t> &s, decltype(opers)::itera
 	s.push(token_t(oit->first, 2));
 }
 
+void insert_implicitmult(postfix_t &out, stack<token_t> &s)
+{
+	auto range = opers.equal_range("*");
+	auto oit = range.first;
+	for (; oit != range.second; ++oit)
+	{
+		if (oit->second.unary == false)
+		{
+			break;
+		}
+	}
+	if (oit != range.second)
+	{
+		insert_binaryoper(out, s, oit);
+	}
+}
+
 postfix_t infix2postfix(string in)
 {
 	postfix_t out;
@@ -169,21 +186,7 @@ postfix_t infix2postfix(string in)
 			if (lasttok.first == ")")
 				throw parse_error("Missing operator", i);
 			else if (lasttok.second == -1)
-			{
-				auto range = opers.equal_range("*");
-				auto oit = range.first;
-				for (; oit != range.second; ++oit)
-				{
-					if (oit->second.unary == false)
-					{
-						break;
-					}
-				}
-				if (oit != range.second)
-				{
-					insert_binaryoper(out, s, oit);
-				}
-			}
+				insert_implicitmult(out, s);
 
 			s.push(lasttok = token_t(fit->first, 0));
 			it += fit->first.size();
@@ -223,8 +226,8 @@ postfix_t infix2postfix(string in)
 
 		if (*it == '(')
 		{
-			if (lasttok.second == -1)
-				throw parse_error("Missing operator", i);
+			if (lasttok.second == -1 || lasttok.first == ")")
+				insert_implicitmult(out, s);
 
 			s.push(lasttok = token_t("(", 1));
 			++it;
