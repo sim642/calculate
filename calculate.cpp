@@ -66,6 +66,34 @@ func_t func_constant(num_t c)
 	});
 }
 
+void insert_binaryoper(postfix_t &out, stack<token_t> &s, decltype(opers)::iterator oit)
+{
+	while (!s.empty())
+	{
+		bool found = false;
+		int tprec;
+		auto range = opers.equal_range(s.top().first);
+		for (auto oit2 = range.first; oit2 != range.second; ++oit2)
+		{
+			if (s.top().second == (oit2->second.unary ? 1 : 2))
+			{
+				tprec = oit2->second.prec;
+				found = true;
+				break;
+			}
+		}
+
+		if ((found && ((!oit->second.right && oit->second.prec == tprec) || (oit->second.prec < tprec))) || (range.first == range.second && funcs.find(s.top().first) != funcs.end()))
+		{
+			out.push_back(s.top());
+			s.pop();
+		}
+		else
+			break;
+	}
+	s.push(token_t(oit->first, 2));
+}
+
 postfix_t infix2postfix(string in)
 {
 	postfix_t out;
@@ -121,30 +149,8 @@ postfix_t infix2postfix(string in)
 			}
 			else
 			{
-				while (!s.empty())
-				{
-					bool found = false;
-					int tprec;
-					auto range = opers.equal_range(s.top().first);
-					for (auto oit2 = range.first; oit2 != range.second; ++oit2)
-					{
-						if (s.top().second == (oit2->second.unary ? 1 : 2))
-						{
-							tprec = oit2->second.prec;
-							found = true;
-							break;
-						}
-					}
-
-					if ((found && ((!oit->second.right && oit->second.prec == tprec) || (oit->second.prec < tprec))) || (range.first == range.second && funcs.find(s.top().first) != funcs.end()))
-					{
-						out.push_back(s.top());
-						s.pop();
-					}
-					else
-						break;
-				}
-				s.push(lasttok = token_t(oit->first, 2));
+				insert_binaryoper(out, s, oit);
+				lasttok = token_t(oit->first, 2);
 			}
 			it += oit->first.size();
 			continue;
@@ -160,8 +166,24 @@ postfix_t infix2postfix(string in)
 		}
 		if (fit != funcs.end())
 		{
-			if (lasttok.second == -1 || lasttok.first == ")")
+			if (lasttok.first == ")")
 				throw parse_error("Missing operator", i);
+			else if (lasttok.second == -1)
+			{
+				auto range = opers.equal_range("*");
+				auto oit = range.first;
+				for (; oit != range.second; ++oit)
+				{
+					if (oit->second.unary == false)
+					{
+						break;
+					}
+				}
+				if (oit != range.second)
+				{
+					insert_binaryoper(out, s, oit);
+				}
+			}
 
 			s.push(lasttok = token_t(fit->first, 0));
 			it += fit->first.size();
