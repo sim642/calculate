@@ -55,15 +55,14 @@ int main()
 	{
 		return abs(v[0]);
 	})});
-	funcs.insert({"log", [](args_t v)
+	funcs.insert({"log", func_args(1, [](args_t v)
 	{
-		if (v.size() == 1)
-			return return_t(true, log10(v[0]));
-		else if (v.size() == 2)
-			return return_t(true, log(v[1]) / log(v[0]));
-		else
-			return return_t(false, 0.0);
-	}});
+		return log10(v[0]);
+	})});
+	funcs.insert({"log", func_args(2, [](args_t v)
+	{
+		return log(v[1]) / log(v[0]);
+	})});
 	funcs.insert({"ln", func_args(1, [](args_t v)
 	{
 		return log(v[0]);
