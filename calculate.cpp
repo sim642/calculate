@@ -5,7 +5,7 @@
 using namespace std;
 
 multimap<string, oper_t> opers;
-multimap<string, func_t> funcs;
+multimap<string, func_t, funcname_compare> funcs;
 
 /// pop element from stack and return it
 /// std::stack<T>::pop() is stupid and returns void

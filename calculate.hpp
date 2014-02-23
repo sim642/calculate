@@ -35,8 +35,21 @@ protected:
 	unsigned int i;
 };
 
+struct funcname_compare
+{
+	bool operator() (const std::string &lhs, const std::string &rhs) const
+	{
+		if (equal(lhs.begin(), lhs.end(), rhs.begin())) // lhs is prefix of rhs
+			return false;
+		else if (equal(rhs.begin(), rhs.end(), lhs.begin())) // rhs is prefix of lhs
+			return true;
+		else
+			return lhs < rhs;
+	}
+};
+
 extern std::multimap<std::string, oper_t> opers;
-extern std::multimap<std::string, func_t> funcs;
+extern std::multimap<std::string, func_t, funcname_compare> funcs;
 
 postfix_t infix2postfix(std::string in);
 num_t evalpostfix(postfix_t in);
