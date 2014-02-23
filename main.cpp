@@ -64,10 +64,54 @@ int main()
 		else
 			return return_t(false, 0.0);
 	}));
+	funcs.insert(make_pair("ln", func_args(1, [](args_t v)
+	{
+		return log(v[0]);
+	})));
 	funcs.insert(make_pair("sqrt", func_args(1, [](args_t v)
 	{
 		return sqrt(v[0]);
 	})));
+	funcs.insert(make_pair("root", func_args(2, [](args_t v)
+	{
+		return pow(v[1], 1.0 / v[0]);
+	})));
+	funcs.insert({"sin", func_args(1, [](args_t v)
+	{
+		return sin(v[0]);
+	})});
+	funcs.insert({"cos", func_args(1, [](args_t v)
+	{
+		return cos(v[0]);
+	})});
+	funcs.insert({"tan", func_args(1, [](args_t v)
+	{
+		return tan(v[0]);
+	})});
+	funcs.insert({"asin", func_args(1, [](args_t v)
+	{
+		return asin(v[0]);
+	})});
+	funcs.insert({"acos", func_args(1, [](args_t v)
+	{
+		return acos(v[0]);
+	})});
+	funcs.insert({"atan", func_args(1, [](args_t v)
+	{
+		return atan(v[0]);
+	})});
+	funcs.insert({"atan2", func_args(2, [](args_t v)
+	{
+		return atan2(v[0], v[1]);
+	})});
+	funcs.insert({"ceil", func_args(1, [](args_t v)
+	{
+		return ceil(v[0]);
+	})});
+	funcs.insert({"floor", func_args(1, [](args_t v)
+	{
+		return floor(v[0]);
+	})});
 	funcs.insert(make_pair("min", [](args_t v)
 	{
 		if (v.size() > 0)
@@ -104,9 +148,13 @@ int main()
 			cout << string(e.index() + 2, ' ') << "^" << endl;
 			cout << e.what() << " at " << e.index() << endl;
 		}
-		catch (exception &e)
+		catch (runtime_error &e)
 		{
 			cout << e.what() << endl;
+		}
+		catch (exception &e)
+		{
+			cout << "Internal error: " << e.what() << endl;
 		}
 		cout << endl;
 	}
