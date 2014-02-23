@@ -136,25 +136,25 @@ int main()
 		try
 		{
 			auto postfix = infix2postfix(exp);
-			for (auto &tok : postfix)
+			/*for (auto &tok : postfix)
 				cout << tok.first << "/" << tok.second << " ";
-			cout << endl;
+			cout << endl;*/
 			auto value = evalpostfix(postfix);
 			cout << setprecision(numeric_limits<decltype(value)>::digits10) << value << endl;
 			funcs.find("_")->second = func_constant(value);
 		}
 		catch (parse_error &e)
 		{
-			cout << string(e.index() + 2, ' ') << "^" << endl;
-			cout << e.what() << " at " << e.index() << endl;
+			cerr << string(e.index() + 2, ' ') << "^" << endl;
+			cerr << e.what() << " at " << e.index() << endl;
 		}
 		catch (runtime_error &e)
 		{
-			cout << e.what() << endl;
+			cerr << e.what() << endl;
 		}
 		catch (exception &e)
 		{
-			cout << "Internal error: " << e.what() << endl;
+			cerr << "Internal error: " << e.what() << endl;
 		}
 		cout << endl;
 	}
