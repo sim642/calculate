@@ -10,52 +10,52 @@ using namespace std;
 
 int main()
 {
-	opers.insert(make_pair("+", oper_t{false, 1, false}));
-	opers.insert(make_pair("-", oper_t{false, 1, false}));
-	opers.insert(make_pair("*", oper_t{false, 2, false}));
-	opers.insert(make_pair("/", oper_t{false, 2, false}));
-	opers.insert(make_pair("%", oper_t{false, 2, false}));
-	opers.insert(make_pair("^", oper_t{true, 3, false}));
-	opers.insert(make_pair("+", oper_t{false, 10, true}));
-	opers.insert(make_pair("-", oper_t{false, 10, true}));
+	opers.insert({"+", oper_t{false, 1, false}});
+	opers.insert({"-", oper_t{false, 1, false}});
+	opers.insert({"*", oper_t{false, 2, false}});
+	opers.insert({"/", oper_t{false, 2, false}});
+	opers.insert({"%", oper_t{false, 2, false}});
+	opers.insert({"^", oper_t{true, 3, false}});
+	opers.insert({"+", oper_t{false, 10, true}});
+	opers.insert({"-", oper_t{false, 10, true}});
 
-	funcs.insert(make_pair("+", func_args(1, [](args_t v)
+	funcs.insert({"+", func_args(1, [](args_t v)
 	{
 		return v[0];
-	})));
-	funcs.insert(make_pair("+", func_args(2, [](args_t v)
+	})});
+	funcs.insert({"+", func_args(2, [](args_t v)
 	{
 		return v[0] + v[1];
-	})));
-	funcs.insert(make_pair("-", func_args(1, [](args_t v)
+	})});
+	funcs.insert({"-", func_args(1, [](args_t v)
 	{
 		return -v[0];
-	})));
-	funcs.insert(make_pair("-", func_args(2, [](args_t v)
+	})});
+	funcs.insert({"-", func_args(2, [](args_t v)
 	{
 		return v[0] - v[1];
-	})));
-	funcs.insert(make_pair("*", func_args(2, [](args_t v)
+	})});
+	funcs.insert({"*", func_args(2, [](args_t v)
 	{
 		return v[0] * v[1];
-	})));
-	funcs.insert(make_pair("/", func_args(2, [](args_t v)
+	})});
+	funcs.insert({"/", func_args(2, [](args_t v)
 	{
 		return v[0] / v[1];
-	})));
-	funcs.insert(make_pair("%", func_args(2, [](args_t v)
+	})});
+	funcs.insert({"%", func_args(2, [](args_t v)
 	{
 		return fmod(v[0], v[1]);
-	})));
-	funcs.insert(make_pair("^", func_args(2, [](args_t v)
+	})});
+	funcs.insert({"^", func_args(2, [](args_t v)
 	{
 		return pow(v[0], v[1]);
-	})));
-	funcs.insert(make_pair("abs", func_args(1, [](args_t v)
+	})});
+	funcs.insert({"abs", func_args(1, [](args_t v)
 	{
 		return abs(v[0]);
-	})));
-	funcs.insert(make_pair("log", [](args_t v)
+	})});
+	funcs.insert({"log", [](args_t v)
 	{
 		if (v.size() == 1)
 			return return_t(true, log10(v[0]));
@@ -63,19 +63,19 @@ int main()
 			return return_t(true, log(v[1]) / log(v[0]));
 		else
 			return return_t(false, 0.0);
-	}));
-	funcs.insert(make_pair("ln", func_args(1, [](args_t v)
+	}});
+	funcs.insert({"ln", func_args(1, [](args_t v)
 	{
 		return log(v[0]);
-	})));
-	funcs.insert(make_pair("sqrt", func_args(1, [](args_t v)
+	})});
+	funcs.insert({"sqrt", func_args(1, [](args_t v)
 	{
 		return sqrt(v[0]);
-	})));
-	funcs.insert(make_pair("root", func_args(2, [](args_t v)
+	})});
+	funcs.insert({"root", func_args(2, [](args_t v)
 	{
 		return pow(v[1], 1.0 / v[0]);
-	})));
+	})});
 	funcs.insert({"sin", func_args(1, [](args_t v)
 	{
 		return sin(v[0]);
@@ -112,23 +112,23 @@ int main()
 	{
 		return floor(v[0]);
 	})});
-	funcs.insert(make_pair("min", [](args_t v)
+	funcs.insert({"min", [](args_t v)
 	{
 		if (v.size() > 0)
 			return return_t(true, *min_element(v.begin(), v.end()));
 		else
 			return return_t(false, 0.0);
-	}));
-	funcs.insert(make_pair("max", [](args_t v)
+	}});
+	funcs.insert({"max", [](args_t v)
 	{
 		if (v.size() > 0)
 			return return_t(true, *max_element(v.begin(), v.end()));
 		else
 			return return_t(false, 0.0);
-	}));
-	funcs.insert(make_pair("pi", func_constant(acos(-1.L))));
-	funcs.insert(make_pair("e", func_constant(exp(1.L))));
-	funcs.insert(make_pair("_", func_constant(NAN)));
+	}});
+	funcs.insert({"pi", func_constant(acos(-1.L))});
+	funcs.insert({"e", func_constant(exp(1.L))});
+	funcs.insert({"_", func_constant(NAN)});
 
 	string exp;
 	while (cout << "> ", getline(cin, exp))
