@@ -7,16 +7,27 @@ using namespace std;
 multimap<string, oper_t> opers;
 multimap<string, func_t> funcs;
 
+/// pop element from stack and return it
+/// std::stack<T>::pop() is stupid and returns void
+template<typename T>
+T pop(stack<T> &s)
+{
+	T val = s.top();
+	s.pop();
+	return val;
+}
+
+/// insert binary operator specified by oit into Shunting-Yard
 void insert_binaryoper(postfix_t &out, stack<token_t> &s, decltype(opers)::iterator oit)
 {
 	while (!s.empty())
 	{
-		bool found = false;
-		int tprec;
+		bool found = false; // stack top element is operator
+		int tprec; // prec of stack top element
 		auto range = opers.equal_range(s.top().first);
 		for (auto oit2 = range.first; oit2 != range.second; ++oit2)
 		{
-			if (s.top().second == (oit2->second.unary ? 1 : 2))
+			if (s.top().second == (oit2->second.unary ? 1 : 2)) // find the correct arity version of the operator
 			{
 				tprec = oit2->second.prec;
 				found = true;
@@ -24,17 +35,15 @@ void insert_binaryoper(postfix_t &out, stack<token_t> &s, decltype(opers)::itera
 			}
 		}
 
-		if ((found && ((!oit->second.right && oit->second.prec == tprec) || (oit->second.prec < tprec))) || (range.first == range.second && funcs.find(s.top().first) != funcs.end()))
-		{
-			out.push_back(s.top());
-			s.pop();
-		}
+		if ((found && ((!oit->second.right && oit->second.prec == tprec) || (oit->second.prec < tprec))) || (!found && funcs.find(s.top().first) != funcs.end()))
+			out.push_back(pop(s));
 		else
 			break;
 	}
 	s.push(token_t(oit->first, 2));
 }
 
+/// insert implicit multiplication at current state
 void insert_implicitmult(postfix_t &out, stack<token_t> &s)
 {
 	auto range = opers.equal_range("*");
@@ -42,16 +51,14 @@ void insert_implicitmult(postfix_t &out, stack<token_t> &s)
 	for (; oit != range.second; ++oit)
 	{
 		if (oit->second.unary == false)
-		{
 			break;
-		}
 	}
-	if (oit != range.second)
-	{
+
+	if (oit != range.second) // if binary multiplication operator exists
 		insert_binaryoper(out, s, oit);
-	}
 }
 
+/// convert infix string into postfix token list
 postfix_t infix2postfix(string in)
 {
 	postfix_t out;
@@ -60,7 +67,7 @@ postfix_t infix2postfix(string in)
 	token_t lasttok;
 	for (auto it = in.cbegin(); it != in.cend();)
 	{
-		const unsigned int i = it - in.cbegin();
+		const unsigned int i = it - in.cbegin(); // index of current character for parse_error purposes
 
 		static const string spaces = " \t\r\n";
 		if (spaces.find(*it) != string::npos)
@@ -74,9 +81,10 @@ postfix_t infix2postfix(string in)
 		if (!s.empty())
 			cout << s.top().first << "/" << s.top().second << endl;*/
 
+		// try to parse number
 		static const string numbers = "0123456789.";
 		auto it2 = it;
-		for (; it2 != in.cend() && numbers.find(*it2) != string::npos; ++it2);
+		for (; it2 != in.cend() && numbers.find(*it2) != string::npos; ++it2); // TODO: find_first_not_of
 		if (it2 != it)
 		{
 			if (lasttok.first == ")" || (opers.find(lasttok.first) == opers.end() && funcs.find(lasttok.first) != funcs.end()) || lasttok.second == -1)
@@ -87,7 +95,9 @@ postfix_t infix2postfix(string in)
 			continue;
 		}
 
-		bool unary = lasttok.first == "" || lasttok.first == "(" || lasttok.first == "," || opers.find(lasttok.first) != opers.end();
+
+		// try to parse operator
+		bool unary = lasttok.first == "" || lasttok.first == "(" || lasttok.first == "," || opers.find(lasttok.first) != opers.end(); // true if operator at current location would be unary
 		/*cout << unary << endl;
 		cout << endl;*/
 
@@ -95,9 +105,7 @@ postfix_t infix2postfix(string in)
 		for (; oit != opers.end(); ++oit)
 		{
 			if (equal(oit->first.begin(), oit->first.end(), it) && oit->second.unary == unary)
-			{
 				break;
-			}
 		}
 		if (oit != opers.end())
 		{
@@ -114,17 +122,17 @@ postfix_t infix2postfix(string in)
 			continue;
 		}
 
+
+		// try to parse function
 		auto fit = funcs.begin();
 		for (; fit != funcs.end(); ++fit)
 		{
 			if (opers.find(fit->first) == opers.end() && equal(fit->first.begin(), fit->first.end(), it))
-			{
 				break;
-			}
 		}
 		if (fit != funcs.end())
 		{
-			if (lasttok.first == ")")
+			if (lasttok.first == ")" || funcs.find(lasttok.first) != funcs.end())
 				throw parse_error("Missing operator", i);
 			else if (lasttok.second == -1)
 				insert_implicitmult(out, s);
@@ -134,6 +142,7 @@ postfix_t infix2postfix(string in)
 			continue;
 		}
 
+		// try to parse function argument separator
 		if (*it == ',')
 		{
 			if (lasttok.first == "(" || lasttok.first == ",")
@@ -159,7 +168,7 @@ postfix_t infix2postfix(string in)
 			if (!found)
 				throw parse_error("Found ',' not inside function arguments", i);
 
-			s.top().second++;
+			s.top().second++; // increase number of arguments in current parenthesis
 			lasttok = token_t(",", 0);
 			++it;
 			continue;
@@ -199,14 +208,10 @@ postfix_t infix2postfix(string in)
 			if (!found)
 				throw parse_error("Found excess '('", i);
 
-			token_t tok = s.top();
-			s.pop();
+			token_t tok = pop(s); // pop '('
 
-			if (!s.empty() && opers.find(s.top().first) == opers.end() && funcs.find(s.top().first) != funcs.end())
-			{
-				out.push_back(token_t(s.top().first, tok.second));
-				s.pop();
-			}
+			if (!s.empty() && opers.find(s.top().first) == opers.end() && funcs.find(s.top().first) != funcs.end()) // if parenthesis part of function arguments
+				out.push_back(token_t(pop(s).first, tok.second));
 
 			lasttok = token_t(")", 0);
 			++it;
@@ -218,8 +223,7 @@ postfix_t infix2postfix(string in)
 
 	while (!s.empty())
 	{
-		token_t tok = s.top();
-		s.pop();
+		token_t tok = pop(s);
 		if (tok.first == "(")
 			throw parse_error("Found unclosed '('", in.size());
 		out.push_back(tok);
@@ -228,12 +232,13 @@ postfix_t infix2postfix(string in)
 	return out;
 }
 
+/// evaluate postfix expression
 num_t evalpostfix(postfix_t in)
 {
 	stack<num_t> s;
 	for (token_t &tok : in)
 	{
-		if (tok.second == -1)
+		if (tok.second == -1) // number
 			s.push(stod(tok.first));
 		else
 		{
@@ -243,18 +248,14 @@ num_t evalpostfix(postfix_t in)
 			{
 				args_t v;
 				for (int i = 0; i < tok.second; i++)
-				{
-					v.insert(v.begin(), s.top());
-					s.pop();
-				}
+					v.insert(v.begin(), pop(s)); // pop elements for function arguments in reverse order
 
 				auto range = funcs.equal_range(tok.first);
-				auto it = range.first;
 				return_t ret(false, 0);
-				for (; it != range.second; ++it)
+				for (auto it = range.first; it != range.second; ++it)
 				{
 					ret = it->second(v);
-					if (ret.first)
+					if (ret.first) // find a function that can evaluate given parameters
 						break;
 				}
 
@@ -263,7 +264,7 @@ num_t evalpostfix(postfix_t in)
 				else
 				{
 					ostringstream args; // stringstream because to_string adds trailing zeroes
-					for (auto vit = v.begin(); vit != v.end(); ++vit)
+					for (auto vit = v.begin(); vit != v.end(); ++vit) // construct exception argument list
 					{
 						args << *vit;
 						if ((vit + 1) != v.end())
