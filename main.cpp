@@ -18,6 +18,7 @@ int main()
 	opers.insert({"^", oper_t{true, 3, false}});
 	opers.insert({"+", oper_t{false, 10, true}});
 	opers.insert({"-", oper_t{false, 10, true}});
+	opers.insert({"!", oper_t{true, 11, true}});
 
 	funcs.insert({"+", func_args(1, [](args_t v)
 	{
@@ -125,6 +126,10 @@ int main()
 		else
 			return return_t(false, 0.0);
 	}});
+	funcs.insert({"!", func_args(1, [](args_t v)
+	{
+		return tgamma(v[0] + 1);
+	})});
 	funcs.insert({"pi", func_constant(acos(-1.L))});
 	funcs.insert({"e", func_constant(exp(1.L))});
 	funcs.insert({"_", func_constant(NAN)});

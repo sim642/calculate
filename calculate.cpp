@@ -97,21 +97,26 @@ postfix_t infix2postfix(string in)
 
 
 		// try to parse operator
-		bool unary = lasttok.first == "" || lasttok.first == "(" || lasttok.first == "," || opers.find(lasttok.first) != opers.end(); // true if operator at current location would be unary
+		auto lastoper = opers.find(lasttok.first);
+		bool lunary = lasttok.first == "" || lasttok.first == "(" || lasttok.first == "," || (lastoper != opers.end() && !(lastoper->second.unary && lastoper->second.right)); // true if operator at current location would be left unary
 		/*cout << unary << endl;
 		cout << endl;*/
 
 		auto oit = opers.begin();
 		for (; oit != opers.end(); ++oit)
 		{
-			if (equal(oit->first.begin(), oit->first.end(), it) && oit->second.unary == unary)
+			if (equal(oit->first.begin(), oit->first.end(), it) && (oit->second.unary == lunary || (oit->second.unary && oit->second.right)))
 				break;
 		}
 		if (oit != opers.end())
 		{
-			if (unary)
+			if (lunary)
 			{
 				s.push(lasttok = token_t(oit->first, 1));
+			}
+			else if (oit->second.unary && oit->second.right) // right unary operator
+			{
+				out.push_back(lasttok = token_t(oit->first, 1)); // needs binaryop insertion?
 			}
 			else
 			{
