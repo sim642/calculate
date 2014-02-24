@@ -122,7 +122,7 @@ postfix_t infix2postfix(string in)
 			}
 			else if (oit->second.unary && oit->second.right) // right unary operator
 			{
-				// allow right unary operators to be used on constants and apply higher prec functions before
+				// allow right unary operators to be used on constants and apply higher prec operators before
 				while (!s.empty())
 				{
 					token_t tok = s.top();
