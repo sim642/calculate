@@ -43,18 +43,24 @@ void insert_binaryoper(postfix_t &out, stack<token_t> &s, decltype(opers)::itera
 	s.push(token_t(oit->first, 2));
 }
 
-/// insert implicit multiplication at current state
-void insert_implicitmult(postfix_t &out, stack<token_t> &s)
+/// find operator with specific string and arity
+decltype(opers)::iterator find_oper(const string &str, bool unary)
 {
-	auto range = opers.equal_range("*");
+	auto range = opers.equal_range(str);
 	auto oit = range.first;
 	for (; oit != range.second; ++oit)
 	{
-		if (oit->second.unary == false)
+		if (oit->second.unary == unary)
 			break;
 	}
+	return oit == range.second ? opers.end() : oit;
+}
 
-	if (oit != range.second) // if binary multiplication operator exists
+/// insert implicit multiplication at current state
+void insert_implicitmult(postfix_t &out, stack<token_t> &s)
+{
+	auto oit = find_oper("*", false);
+	if (oit != opers.end()) // if binary multiplication operator exists
 		insert_binaryoper(out, s, oit);
 }
 
@@ -116,7 +122,18 @@ postfix_t infix2postfix(string in)
 			}
 			else if (oit->second.unary && oit->second.right) // right unary operator
 			{
-				out.push_back(lasttok = token_t(oit->first, 1)); // needs binaryop insertion?
+				// allow right unary operators to be used on constants and apply higher prec functions before
+				while (!s.empty())
+				{
+					token_t tok = s.top();
+
+					auto oit2 = find_oper(tok.first, true);
+					if ((oit2 != opers.end() && oit2->second.prec > oit->second.prec) || (oit2 == opers.end() && funcs.find(tok.first) != funcs.end()))
+						out.push_back(pop(s));
+					else
+						break;
+				}
+				out.push_back(lasttok = token_t(oit->first, 1)); // needs stack popping before?
 			}
 			else
 			{
@@ -137,7 +154,7 @@ postfix_t infix2postfix(string in)
 		}
 		if (fit != funcs.end())
 		{
-			if (lasttok.first == ")" || funcs.find(lasttok.first) != funcs.end())
+			if (lasttok.first == ")" || (opers.find(lasttok.first) == opers.end() && funcs.find(lasttok.first) != funcs.end()))
 				throw parse_error("Missing operator", i);
 			else if (lasttok.second == -1)
 				insert_implicitmult(out, s);
