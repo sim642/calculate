@@ -7,6 +7,7 @@
 #include <utility>
 #include <functional>
 #include <stdexcept>
+#include <complex>
 
 struct oper_t
 {
@@ -15,7 +16,7 @@ struct oper_t
 	bool unary;
 };
 
-typedef long double num_t;
+typedef std::complex<long double> num_t;
 typedef std::pair<bool, num_t> return_t;
 typedef std::vector<num_t> args_t;
 typedef std::function<return_t(args_t)> func_t;
